@@ -52,7 +52,7 @@ void UTurnHudWidget::SetTargetUnit(AUnitCharacter* Unit)
 
 void UTurnHudWidget::HandleEndTurnClicked()
 {
-    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    APlayerController* PC = GetOwningPlayer();
     ATBPlayerController* TBPC = Cast<ATBPlayerController>(PC);
     if (TBPC)
     {
@@ -62,7 +62,7 @@ void UTurnHudWidget::HandleEndTurnClicked()
 
 void UTurnHudWidget::HandleConfirmClicked()
 {
-    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    APlayerController* PC = GetOwningPlayer();
     ATBPlayerController* TBPC = Cast<ATBPlayerController>(PC);
     if (TBPC)
     {
@@ -72,7 +72,7 @@ void UTurnHudWidget::HandleConfirmClicked()
 
 void UTurnHudWidget::HandleCastMagicArrowClicked()
 {
-    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    APlayerController* PC = GetOwningPlayer();
     ATBPlayerController* TBPC = Cast<ATBPlayerController>(PC);
     if (TBPC && TBPC->SelectedUnit)
     {
@@ -82,7 +82,7 @@ void UTurnHudWidget::HandleCastMagicArrowClicked()
 
 void UTurnHudWidget::HandleCastBoulderClicked()
 {
-    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    APlayerController* PC = GetOwningPlayer();
     ATBPlayerController* TBPC = Cast<ATBPlayerController>(PC);
     if (TBPC && TBPC->SelectedUnit)
     {
@@ -92,9 +92,11 @@ void UTurnHudWidget::HandleCastBoulderClicked()
 
 void UTurnHudWidget::OnUnitHPChanged(int32 NewHP)
 {
-    if (UnitHPText)
+    if (UnitHPText && BoundUnit)
     {
-        UnitHPText->SetText(FText::FromString(FString::Printf(TEXT("HP: %d/%d"), NewHP, BoundUnit ? BoundUnit->MaxHP : 0)));
+        UnitHPText->SetText(FText::Format(FText::FromString("HP: {0}/{1}"), 
+            FText::AsNumber(NewHP), 
+            FText::AsNumber(BoundUnit->MaxHP)));
     }
 }
 
@@ -119,20 +121,39 @@ void UTurnHudWidget::RefreshAllStats()
         return;
     }
 
-    if (UnitHPText) UnitHPText->SetText(FText::FromString(FString::Printf(TEXT("HP: %d/%d"), BoundUnit->HP, BoundUnit->MaxHP)));
+    if (UnitHPText)
+    {
+        UnitHPText->SetText(FText::Format(FText::FromString("HP: {0}/{1}"), 
+            FText::AsNumber(BoundUnit->HP), 
+            FText::AsNumber(BoundUnit->MaxHP)));
+    }
+    
     if (UnitMPText)
     {
         if (BoundUnit->TurnStats)
-            UnitMPText->SetText(FText::FromString(FString::Printf(TEXT("MP: %d/%d"), BoundUnit->TurnStats->MovementPoints, BoundUnit->TurnStats->MaxMovementPoints)));
+        {
+            UnitMPText->SetText(FText::Format(FText::FromString("MP: {0}/{1}"), 
+                FText::AsNumber(BoundUnit->TurnStats->MovementPoints), 
+                FText::AsNumber(BoundUnit->TurnStats->MaxMovementPoints)));
+        }
         else
+        {
             UnitMPText->SetText(FText::FromString("MP: -"));
+        }
     }
+    
     if (UnitAPText)
     {
         if (BoundUnit->TurnStats)
-            UnitAPText->SetText(FText::FromString(FString::Printf(TEXT("AP: %d/%d"), BoundUnit->TurnStats->ActionPoints, BoundUnit->TurnStats->MaxActionPoints)));
+        {
+            UnitAPText->SetText(FText::Format(FText::FromString("AP: {0}/{1}"), 
+                FText::AsNumber(BoundUnit->TurnStats->ActionPoints), 
+                FText::AsNumber(BoundUnit->TurnStats->MaxActionPoints)));
+        }
         else
+        {
             UnitAPText->SetText(FText::FromString("AP: -"));
+        }
     }
 }
 

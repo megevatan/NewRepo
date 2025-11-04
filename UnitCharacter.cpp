@@ -138,7 +138,7 @@ void AUnitCharacter::ConfirmPlacement()
     if (Dest->Occupant && Dest->Occupant != this)
     {
         // revert and refund the spent MP
-        TurnStats->MovementPoints += PreviewCost;
+        TurnStats->RefundMovement(PreviewCost);
         CancelPreviewMove();
         return;
     }
@@ -223,9 +223,12 @@ bool AUnitCharacter::CastAbilityAtTile(FName AbilityName, AGridTile* TargetTile)
     // Apply effect (if something to hit)
     bool bApplied = ApplyAbilityToTile(*Chosen, TargetTile);
 
-    // Consume AP and a cast
-    TurnStats->SpendAction(Chosen->APCost);
-    Chosen->CastsRemaining = FMath::Max(0, Chosen->CastsRemaining - 1);
+    // Only consume AP and a cast if ability was actually applied
+    if (bApplied)
+    {
+        TurnStats->SpendAction(Chosen->APCost);
+        Chosen->CastsRemaining = FMath::Max(0, Chosen->CastsRemaining - 1);
+    }
 
     // Notify UI about AP/ability changes (delegate or TurnStats)
     return bApplied;

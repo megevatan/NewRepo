@@ -3,7 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "UnitCharacter.h"
 #include "AGridTile.h"
-#include "AGridManager.h"
+#include "GridManager.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "TurnHudWidget.h"
@@ -13,14 +13,24 @@ ATBPlayerController::ATBPlayerController()
     bShowMouseCursor = true;
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
+    CachedGridManager = nullptr;
 }
 
 void ATBPlayerController::BeginPlay()
 {
     Super::BeginPlay();
+    
+    // Cache GridManager pointer to avoid iterating actors on each right-click
+    for (TActorIterator<AGridManager> It(GetWorld()); It; ++It)
+    {
+        CachedGridManager = *It;
+        break;
+    }
+    
+    // Safely create and add the widget
     if (TurnHudClass)
     {
-        TurnHudWidget = CreateWidget<UUserWidget>(this, TurnHudClass);
+        TurnHudWidget = CreateWidget<UTurnHudWidget>(this, TurnHudClass);
         if (TurnHudWidget)
         {
             TurnHudWidget->AddToViewport();
@@ -31,6 +41,13 @@ void ATBPlayerController::BeginPlay()
 void ATBPlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent();
+    
+    // Safety check on InputComponent
+    if (!InputComponent)
+    {
+        return;
+    }
+    
     InputComponent->BindAction("LeftClick", IE_Pressed, this, &ATBPlayerController::OnLeftClick);
     InputComponent->BindAction("RightClick", IE_Pressed, this, &ATBPlayerController::OnRightClick);
     InputComponent->BindAction("Confirm", IE_Pressed, this, &ATBPlayerController::OnConfirmPlacement);
@@ -69,11 +86,7 @@ void ATBPlayerController::OnLeftClick()
         // Update HUD target if present
         if (TurnHudWidget)
         {
-            UTurnHudWidget* Hud = Cast<UTurnHudWidget>(TurnHudWidget);
-            if (Hud)
-            {
-                Hud->SetTargetUnit(SelectedUnit);
-            }
+            TurnHudWidget->SetTargetUnit(SelectedUnit);
         }
     }
     else
@@ -89,18 +102,26 @@ void ATBPlayerController::OnRightClick()
     AGridTile* Tile = GetTileUnderCursor();
     if (!Tile) return;
 
-    // Ask GridManager to find a path
-    for (TActorIterator<AGridManager> It(GetWorld()); It; ++It)
+    // Use cached GridManager; fallback to iterator if cache missing
+    AGridManager* GM = CachedGridManager;
+    if (!GM)
     {
-        AGridManager* GM = *It;
-        if (!GM) continue;
+        for (TActorIterator<AGridManager> It(GetWorld()); It; ++It)
+        {
+            GM = *It;
+            CachedGridManager = GM;
+            break;
+        }
+    }
+    
+    if (GM)
+    {
         TArray<AGridTile*> Path = GM->FindPath(SelectedUnit->CurrentTile, Tile);
         if (Path.Num())
         {
             // Request preview move (visual only); confirmation happens via Confirm input/UI
             SelectedUnit->RequestPreviewMove(Path);
         }
-        break;
     }
 }
 
@@ -112,11 +133,7 @@ void ATBPlayerController::OnConfirmPlacement()
     // After confirm, update HUD stats
     if (TurnHudWidget)
     {
-        UTurnHudWidget* Hud = Cast<UTurnHudWidget>(TurnHudWidget);
-        if (Hud)
-        {
-            Hud->RefreshAllStats();
-        }
+        TurnHudWidget->RefreshAllStats();
     }
 }
 
@@ -127,8 +144,7 @@ void ATBPlayerController::OnCancelPreview()
 
     if (TurnHudWidget)
     {
-        UTurnHudWidget* Hud = Cast<UTurnHudWidget>(TurnHudWidget);
-        if (Hud) Hud->RefreshAllStats();
+        TurnHudWidget->RefreshAllStats();
     }
 }
 
@@ -141,8 +157,7 @@ void ATBPlayerController::OnCastMagicArrow()
 
     if (TurnHudWidget)
     {
-        UTurnHudWidget* Hud = Cast<UTurnHudWidget>(TurnHudWidget);
-        if (Hud) Hud->RefreshAllStats();
+        TurnHudWidget->RefreshAllStats();
     }
 }
 
@@ -155,7 +170,6 @@ void ATBPlayerController::OnCastBoulder()
 
     if (TurnHudWidget)
     {
-        UTurnHudWidget* Hud = Cast<UTurnHudWidget>(TurnHudWidget);
-        if (Hud) Hud->RefreshAllStats();
+        TurnHudWidget->RefreshAllStats();
     }
 }

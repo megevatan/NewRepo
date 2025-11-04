@@ -7,7 +7,7 @@
 class AGridManager;
 class AUnitCharacter;
 class AGridTile;
-class UUserWidget;
+class UTurnHudWidget;
 
 UCLASS()
 class DENEME_API ATBPlayerController : public APlayerController
@@ -21,10 +21,10 @@ public:
 
     // UI widget class for Turn HUD (assign in editor)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
-    TSubclassOf<UUserWidget> TurnHudClass;
+    TSubclassOf<UTurnHudWidget> TurnHudClass;
 
     UPROPERTY()
-    UUserWidget* TurnHudWidget;
+    UTurnHudWidget* TurnHudWidget;
 
     // Expose selected unit publicly so UI code can use it
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
@@ -43,6 +43,10 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+
+    // Cached GridManager pointer to avoid iterating actors on each right-click
+    UPROPERTY()
+    AGridManager* CachedGridManager;
 
     // Click handling
     void OnLeftClick();

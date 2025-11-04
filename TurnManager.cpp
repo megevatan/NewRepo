@@ -20,7 +20,7 @@ void ATurnManager::CollectUnits()
     for (TActorIterator<AUnitCharacter> It(GetWorld()); It; ++It)
     {
         AUnitCharacter* Unit = *It;
-        if (Unit)
+        if (IsValid(Unit))
         {
             AllUnits.Add(Unit);
         }
@@ -60,7 +60,10 @@ ATurnManager* ATurnManager::GetTurnManager(UWorld* World)
     
     for (TActorIterator<ATurnManager> It(World); It; ++It)
     {
-        return *It;
+        if (IsValid(*It))
+        {
+            return *It;
+        }
     }
     
     return nullptr;

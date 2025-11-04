@@ -23,8 +23,11 @@ void ATBPlayerController::BeginPlay()
     // Cache GridManager pointer to avoid iterating actors on each right-click
     for (TActorIterator<AGridManager> It(GetWorld()); It; ++It)
     {
-        CachedGridManager = *It;
-        break;
+        if (IsValid(*It))
+        {
+            CachedGridManager = *It;
+            break;
+        }
     }
     
     // Safely create and add the widget
@@ -108,9 +111,12 @@ void ATBPlayerController::OnRightClick()
     {
         for (TActorIterator<AGridManager> It(GetWorld()); It; ++It)
         {
-            GM = *It;
-            CachedGridManager = GM;
-            break;
+            if (IsValid(*It))
+            {
+                GM = *It;
+                CachedGridManager = GM;
+                break;
+            }
         }
     }
     

@@ -87,19 +87,19 @@ TArray<AGridTile*> AGridManager::FindPath(AGridTile* Start, AGridTile* End) cons
     if (!Start || !End) return Path;
     if (Start == End) return Path;
     
-    // A* pathfinding implementation
+    // A* pathfinding implementation using smart pointers for safe memory management
     TArray<FPathNode*> OpenSet;
     TArray<FPathNode*> ClosedSet;
-    TMap<AGridTile*, FPathNode*> NodeMap;
+    TMap<AGridTile*, TSharedPtr<FPathNode>> NodeMap;
     
     // Create start node
-    FPathNode* StartNode = new FPathNode();
+    TSharedPtr<FPathNode> StartNode = MakeShared<FPathNode>();
     StartNode->Tile = Start;
     StartNode->GCost = 0;
     StartNode->HCost = GetManhattanDistance(Start, End);
     StartNode->Parent = nullptr;
     
-    OpenSet.Add(StartNode);
+    OpenSet.Add(StartNode.Get());
     NodeMap.Add(Start, StartNode);
     
     FPathNode* CurrentNode = nullptr;
@@ -151,18 +151,20 @@ TArray<AGridTile*> AGridManager::FindPath(AGridTile* Start, AGridTile* End) cons
             int32 NewGCost = CurrentNode->GCost + NeighborTile->MovementCost;
             
             FPathNode* NeighborNode = nullptr;
-            if (NodeMap.Contains(NeighborTile))
+            TSharedPtr<FPathNode>* NeighborNodePtr = NodeMap.Find(NeighborTile);
+            if (NeighborNodePtr)
             {
-                NeighborNode = NodeMap[NeighborTile];
+                NeighborNode = NeighborNodePtr->Get();
             }
             
             if (!NeighborNode || NewGCost < NeighborNode->GCost)
             {
                 if (!NeighborNode)
                 {
-                    NeighborNode = new FPathNode();
-                    NeighborNode->Tile = NeighborTile;
-                    NodeMap.Add(NeighborTile, NeighborNode);
+                    TSharedPtr<FPathNode> NewNode = MakeShared<FPathNode>();
+                    NewNode->Tile = NeighborTile;
+                    NeighborNode = NewNode.Get();
+                    NodeMap.Add(NeighborTile, NewNode);
                     OpenSet.Add(NeighborNode);
                 }
                 
@@ -184,11 +186,7 @@ TArray<AGridTile*> AGridManager::FindPath(AGridTile* Start, AGridTile* End) cons
         }
     }
     
-    // Cleanup
-    for (auto& Pair : NodeMap)
-    {
-        delete Pair.Value;
-    }
+    // Automatic cleanup via TSharedPtr - no manual delete needed
     
     return Path;
 }
